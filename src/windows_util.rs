@@ -74,14 +74,24 @@ impl SharedMemory {
         let handle;
         loop {
             {
+                log::trace!("Trying to open file mapping");
+
                 let handle_opt = unsafe {
                     OpenFileMappingA(FILE_MAP_READ.0, false, PCSTR::from_raw(name.as_ptr()))
                 }
-                .ok()
-                .and_then(SafeHandle::new);
-                if let Some(val) = handle_opt {
-                    handle = val;
-                    break;
+                .map(SafeHandle::new);
+
+                match handle_opt {
+                    Ok(Some(val)) => {
+                        handle = val;
+                        break;
+                    }
+                    Ok(None) => {
+                        log::warn!("Failed to open file mapping: no file handle");
+                    }
+                    Err(err) => {
+                        log::error!("Failed to open file mapping: {:?}", err);
+                    }
                 }
             }
             tokio::time::sleep(poll_delay).await;

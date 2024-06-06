@@ -37,9 +37,16 @@ pub struct Client {
 impl Client {
     pub async fn connect(retry_delay: Duration) -> Self {
         loop {
-            if let Ok(v) = Self::try_connect().await {
-                return v;
+            let p = Self::try_connect().await;
+
+            match p {
+                Ok(v) => {
+                    log::info!("Connected to iRacing");
+                    return v;
+                }
+                Err(e) => log::error!("Failed to connect to iRacing: {e}"),
             }
+
             tokio::time::sleep(retry_delay).await;
         }
     }
